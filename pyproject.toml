@@ -1,0 +1,30 @@
+[project]
+name = "project4repo"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "RazaSherazi09", email = "183750782+RazaSherazi09@users.noreply.github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "datasets>=5.2.0",
+    "diffusers>=0.43.0",
+    "huggingface-hub>=2.4.0",
+    "matplotlib>=3.11.2",
+    "modal>=1.6.4",
+    "numpy>=2.4.6",
+    "pandas>=3.1.1",
+    "pillow>=13.0.0",
+    "rouge-score>=0.1.2",
+    "streamlit>=1.67.0",
+    "torch>=2.15.0",
+    "transformers>=5.24.0",
+]
+
+[project.scripts]
+project4repo = "project4repo:main"
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"

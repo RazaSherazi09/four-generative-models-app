@@ -1,0 +1,39 @@
+@'
+# Python & uv
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets & OS
+.env
+*.pem
+*.key
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Datasets & Archives (Stored exclusively on Modal Volume /vol/data)
+data/
+starter/data/
+*.zip
+*.tar
+*.tar.gz
+
+# Model Checkpoints, Caches & Embeddings (Stored on Modal Volume & HF Hub)
+checkpoints/
+models/
+hf_cache/
+indices/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.npy
+*.npz
+'@ | Set-Content -Path .gitignore -Encoding UTF8
