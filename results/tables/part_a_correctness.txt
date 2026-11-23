@@ -1,0 +1,1 @@
+[MAE Correctness Check PASSED] Batch=16 | Total patches=64 | Masked patches per image=48/64 (75.0%) | Loss delta when perturbing visible patches=0.00e+00 (strictly masked-only loss verified).

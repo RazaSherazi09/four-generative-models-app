@@ -1,0 +1,21 @@
+{
+  "dataset": {
+    "train_images": 16200,
+    "test_images": 5400,
+    "few_label_images_used": 160,
+    "num_classes": 10
+  },
+  "training": {
+    "mae_total_parameters": 3173248,
+    "classifier_trainable_parameters": 1930,
+    "mae_final_train_loss": 0.006693594147807654,
+    "mae_train_time_sec": 419.517808936,
+    "classifier_train_time_sec": 0.3309984600000462,
+    "gpu_name": "Tesla T4"
+  },
+  "evaluation": {
+    "test_accuracy": 0.4951851963996887,
+    "test_accuracy_pct": 49.52,
+    "correctness_check": "[MAE Correctness Check PASSED] Batch=16 | Total patches=64 | Masked patches per image=48/64 (75.0%) | Loss delta when perturbing visible patches=0.00e+00 (strictly masked-only loss verified)."
+  }
+}
