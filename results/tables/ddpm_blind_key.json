@@ -1,0 +1,162 @@
+[
+  {
+    "sample_id": 1,
+    "true_character": "choti yaa"
+  },
+  {
+    "sample_id": 2,
+    "true_character": "swaad"
+  },
+  {
+    "sample_id": 3,
+    "true_character": "kaaf"
+  },
+  {
+    "sample_id": 4,
+    "true_character": "jeem"
+  },
+  {
+    "sample_id": 5,
+    "true_character": "noonghunna"
+  },
+  {
+    "sample_id": 6,
+    "true_character": "alif mad aa"
+  },
+  {
+    "sample_id": 7,
+    "true_character": "dhaal"
+  },
+  {
+    "sample_id": 8,
+    "true_character": "cheey"
+  },
+  {
+    "sample_id": 9,
+    "true_character": "meem"
+  },
+  {
+    "sample_id": 10,
+    "true_character": "raa"
+  },
+  {
+    "sample_id": 11,
+    "true_character": "hamza"
+  },
+  {
+    "sample_id": 12,
+    "true_character": "paa"
+  },
+  {
+    "sample_id": 13,
+    "true_character": "ghain"
+  },
+  {
+    "sample_id": 14,
+    "true_character": "haa1"
+  },
+  {
+    "sample_id": 15,
+    "true_character": "gaaf"
+  },
+  {
+    "sample_id": 16,
+    "true_character": "waw"
+  },
+  {
+    "sample_id": 17,
+    "true_character": "khaa"
+  },
+  {
+    "sample_id": 18,
+    "true_character": "baa"
+  },
+  {
+    "sample_id": 19,
+    "true_character": "twa"
+  },
+  {
+    "sample_id": 20,
+    "true_character": "alif"
+  },
+  {
+    "sample_id": 21,
+    "true_character": "rhraa"
+  },
+  {
+    "sample_id": 22,
+    "true_character": "seey"
+  },
+  {
+    "sample_id": 23,
+    "true_character": "zwaa"
+  },
+  {
+    "sample_id": 24,
+    "true_character": "sheen"
+  },
+  {
+    "sample_id": 25,
+    "true_character": "haa2"
+  },
+  {
+    "sample_id": 26,
+    "true_character": "qaaf"
+  },
+  {
+    "sample_id": 27,
+    "true_character": "zaaa"
+  },
+  {
+    "sample_id": 28,
+    "true_character": "zwaad"
+  },
+  {
+    "sample_id": 29,
+    "true_character": "seen"
+  },
+  {
+    "sample_id": 30,
+    "true_character": "haa3"
+  },
+  {
+    "sample_id": 31,
+    "true_character": "daal"
+  },
+  {
+    "sample_id": 32,
+    "true_character": "taa"
+  },
+  {
+    "sample_id": 33,
+    "true_character": "zhaa"
+  },
+  {
+    "sample_id": 34,
+    "true_character": "ayn"
+  },
+  {
+    "sample_id": 35,
+    "true_character": "faa"
+  },
+  {
+    "sample_id": 36,
+    "true_character": "bari yaa"
+  },
+  {
+    "sample_id": 37,
+    "true_character": "zaal"
+  },
+  {
+    "sample_id": 38,
+    "true_character": "laam"
+  },
+  {
+    "sample_id": 39,
+    "true_character": "ttaa"
+  },
+  {
+    "sample_id": 40,
+    "true_character": "noon"
+  }
+]

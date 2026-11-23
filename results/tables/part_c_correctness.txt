@@ -1,0 +1,1 @@
+[DDPM Correctness Check PASSED] T=1000 | alpha_bar_T=4.035830e-05 (approx 4e-5 verified) | Noised x_(t=999) stats: mean=-0.0089, std=0.9973 (pure Gaussian noise verified).

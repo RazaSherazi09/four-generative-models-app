@@ -327,6 +327,81 @@ def run_part_b_remote():
     }
 
 
+@app.function(
+    image=image,
+    gpu="A10G",
+    volumes={"/vol": vol},
+    secrets=_get_hf_secret(),
+    timeout=3600,
+)
+def run_part_c_remote():
+    import sys
+    sys.path.insert(0, "/root/project")
+    setup_vol_env()
+    ensure_uhat_tensor_cache()
+
+    from part_c_diffusion.train import train_ddpm
+    from part_c_diffusion.sample import evaluate_and_sample_part_c
+
+    ckpt_dir = "/vol/checkpoints/part_c_diffusion"
+    out_dir = "/tmp/part_c_results"
+    os.makedirs(out_dir, exist_ok=True)
+
+    ddpm_ckpt = f"{ckpt_dir}/ddpm_unet_uhat.pt"
+    loss_plot = f"{out_dir}/ddpm_train_loss.png"
+    forward_plot = f"{out_dir}/ddpm_forward_noising.png"
+    grid_40x8_plot = f"{out_dir}/ddpm_40x8_samples.png"
+    denoise_plot = f"{out_dir}/ddpm_denoising_steps.png"
+    blind_grid_plot = f"{out_dir}/ddpm_blind_test_40.png"
+    blind_key_json = f"{out_dir}/ddpm_blind_key.json"
+    human_eval_csv = f"{out_dir}/human_eval.csv"
+    history_csv = f"{out_dir}/ddpm_train_history.csv"
+    summary_json = f"{out_dir}/part_c_summary.json"
+    correctness_txt = f"{out_dir}/part_c_correctness.txt"
+
+    train_ddpm(
+        uhat_root="/tmp/uhat_extracted",
+        ckpt_path=ddpm_ckpt,
+        loss_plot_path=loss_plot,
+        forward_plot_path=forward_plot,
+        history_csv_path=history_csv,
+        epochs=40,
+        batch_size=128,
+        lr=2e-4,
+        num_timesteps=1000,
+        seed=42,
+    )
+
+    evaluate_and_sample_part_c(
+        uhat_root="/tmp/uhat_extracted",
+        ckpt_path=ddpm_ckpt,
+        grid_40x8_path=grid_40x8_plot,
+        denoise_plot_path=denoise_plot,
+        blind_grid_path=blind_grid_plot,
+        blind_key_json_path=blind_key_json,
+        human_eval_csv_path=human_eval_csv,
+        summary_json_path=summary_json,
+        correctness_txt_path=correctness_txt,
+        seed=42,
+    )
+
+    vol.commit()
+    upload_dir_to_hf(ckpt_dir, "part_c_diffusion")
+
+    return {
+        "loss_plot": Path(loss_plot).read_bytes(),
+        "forward_plot": Path(forward_plot).read_bytes(),
+        "grid_40x8_plot": Path(grid_40x8_plot).read_bytes(),
+        "denoise_plot": Path(denoise_plot).read_bytes(),
+        "blind_grid_plot": Path(blind_grid_plot).read_bytes(),
+        "blind_key_json": Path(blind_key_json).read_text(encoding="utf-8"),
+        "human_eval_csv": Path(human_eval_csv).read_text(encoding="utf-8"),
+        "history_csv": Path(history_csv).read_text(encoding="utf-8"),
+        "summary_json": Path(summary_json).read_text(encoding="utf-8"),
+        "correctness_txt": Path(correctness_txt).read_text(encoding="utf-8"),
+    }
+
+
 @app.local_entrypoint()
 def task0_starter():
     print("Running Task 0 (starter/check_starter.py) on Modal...")
@@ -381,4 +456,29 @@ def part_b():
     print(out["summary_json"])
     print("=== Correctness Check ===")
     print(out["correctness_txt"])
-    print("All Part B checkpoints persisted on Modal Volume & Hugging Face Hub; figures/tables saved locally.")
+
+
+@app.local_entrypoint()
+def part_c():
+    print("Running Part C (Class-Conditional DDPM Training + Sampling on UHaT) on Modal A10G GPU...")
+    out = run_part_c_remote.remote()
+
+    os.makedirs("results/figures", exist_ok=True)
+    os.makedirs("results/tables", exist_ok=True)
+
+    Path("results/figures/ddpm_train_loss.png").write_bytes(out["loss_plot"])
+    Path("results/figures/ddpm_forward_noising.png").write_bytes(out["forward_plot"])
+    Path("results/figures/ddpm_40x8_samples.png").write_bytes(out["grid_40x8_plot"])
+    Path("results/figures/ddpm_denoising_steps.png").write_bytes(out["denoise_plot"])
+    Path("results/figures/ddpm_blind_test_40.png").write_bytes(out["blind_grid_plot"])
+    Path("results/tables/ddpm_blind_key.json").write_text(out["blind_key_json"], encoding="utf-8")
+    Path("results/human_eval.csv").write_text(out["human_eval_csv"], encoding="utf-8")
+    Path("results/tables/ddpm_train_history.csv").write_text(out["history_csv"], encoding="utf-8")
+    Path("results/tables/part_c_summary.json").write_text(out["summary_json"], encoding="utf-8")
+    Path("results/tables/part_c_correctness.txt").write_text(out["correctness_txt"], encoding="utf-8")
+
+    print("\n=== Part C Summary ===")
+    print(out["summary_json"])
+    print("=== Correctness Check ===")
+    print(out["correctness_txt"])
+    print("All Part C checkpoints persisted on Modal Volume & Hugging Face Hub; figures/tables saved locally.")
