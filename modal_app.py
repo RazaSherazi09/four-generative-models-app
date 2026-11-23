@@ -51,7 +51,7 @@ def upload_dir_to_hf(local_dir: str, path_in_repo: str):
     """Push trained checkpoints from Modal container directly to Hugging Face Hub."""
     token = os.environ.get("HF_TOKEN")
     if not token:
-        print("Warning: HF_TOKEN not found in container; skipping Hugging Face Hub upload.")
+        print("Warning: HF_TOKEN not found in container; skipping Hugging Face Hub upload.", flush=True)
         return
     from huggingface_hub import HfApi
 
@@ -63,7 +63,7 @@ def upload_dir_to_hf(local_dir: str, path_in_repo: str):
         repo_type="model",
         commit_message=f"Upload {path_in_repo} checkpoints and artifacts",
     )
-    print(f"Uploaded {local_dir} -> https://huggingface.co/{HF_REPO_ID}/tree/main/{path_in_repo}")
+    print(f"Uploaded {local_dir} -> https://huggingface.co/{HF_REPO_ID}/tree/main/{path_in_repo}", flush=True)
 
 
 def _download_uhat_zip(zip_path: str) -> None:
@@ -79,7 +79,7 @@ def _download_uhat_zip(zip_path: str) -> None:
     last_err = None
     for url in urls:
         try:
-            print(f"Fetching UHaT archive from: {url}")
+            print(f"Fetching UHaT archive from: {url}", flush=True)
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=180) as resp, open(zip_path, "wb") as f:
                 while True:
@@ -89,7 +89,7 @@ def _download_uhat_zip(zip_path: str) -> None:
                     f.write(chunk)
             if zipfile.is_zipfile(zip_path):
                 size_mb = os.path.getsize(zip_path) / (1024 * 1024)
-                print(f"Downloaded valid UHaT ZIP ({size_mb:.2f} MB).")
+                print(f"Downloaded valid UHaT ZIP ({size_mb:.2f} MB).", flush=True)
                 return
             os.remove(zip_path)
             last_err = RuntimeError(f"Response from {url} was not a valid ZIP archive.")
@@ -97,43 +97,73 @@ def _download_uhat_zip(zip_path: str) -> None:
             if os.path.exists(zip_path):
                 os.remove(zip_path)
             last_err = exc
-            print(f"Source failed ({exc}); trying next mirror...")
+            print(f"Source failed ({exc}); trying next mirror...", flush=True)
     raise RuntimeError(f"All UHaT download sources failed. Last error: {last_err}")
 
 
 def setup_vol_env():
-    """Configure Hugging Face caches and UHaT symlink on the persistent Modal Volume."""
+    """Configure Hugging Face caches and directories on the persistent Modal Volume."""
+    os.environ["PYTHONUNBUFFERED"] = "1"
     os.environ["HF_HOME"] = "/vol/hf_cache"
     os.environ["HF_DATASETS_CACHE"] = "/vol/hf_cache/datasets"
     os.makedirs("/vol/hf_cache/datasets", exist_ok=True)
-    os.makedirs("/vol/data/uhat", exist_ok=True)
+    os.makedirs("/vol/data", exist_ok=True)
     os.makedirs("/vol/checkpoints/part_a_mae", exist_ok=True)
     os.makedirs("/vol/checkpoints/part_b_vae", exist_ok=True)
     os.makedirs("/vol/checkpoints/part_c_diffusion", exist_ok=True)
     os.makedirs("/vol/indices/part_d_rag", exist_ok=True)
 
-    uhat_dir = Path("/vol/data/uhat")
-    has_char_dir = any(
-        d.is_dir() and "char" in d.name.lower() for d in uhat_dir.rglob("*")
-    )
-    if not has_char_dir:
-        zip_path = "/vol/data/uhat/data.zip"
-        _download_uhat_zip(zip_path)
-        with zipfile.ZipFile(zip_path, "r") as zf:
-            zf.extractall("/vol/data/uhat")
-        os.remove(zip_path)
-        print("UHaT dataset extracted to /vol/data/uhat.")
 
-    starter_data = Path("/root/project/starter/data")
-    starter_data.mkdir(parents=True, exist_ok=True)
-    link_path = starter_data / "uhat"
-    if not link_path.exists():
-        link_path.symlink_to("/vol/data/uhat")
+def ensure_uhat_tensor_cache(cache_path: str = "/vol/data/uhat_tensors.pt"):
+    """Downloads & extracts UHaT on fast local container SSD (/tmp) and persists one .pt file to /vol."""
+    if os.path.exists(cache_path):
+        print(f"Found cached UHaT tensors at {cache_path}.", flush=True)
+        return
+
+    import sys
+    import torch
+    sys.path.insert(0, "/root/project")
+    from starter.uhat import load_uhat_characters
+
+    tmp_zip = "/tmp/uhat_data.zip"
+    tmp_dir = "/tmp/uhat_extracted"
+    os.makedirs(tmp_dir, exist_ok=True)
+
+    _download_uhat_zip(tmp_zip)
+    print("Extracting UHaT archive on fast container NVMe SSD...", flush=True)
+    with zipfile.ZipFile(tmp_zip, "r") as zf:
+        zf.extractall(tmp_dir)
+    os.remove(tmp_zip)
+
+    print("Preprocessing 40 Urdu character classes via starter.uhat.load_uhat_characters...", flush=True)
+    c_tr, l_tr, class_names = load_uhat_characters(root=tmp_dir, split="train")
+    c_te, l_te, _ = load_uhat_characters(root=tmp_dir, split="test", class_names=class_names)
+
+    torch.save(
+        {
+            "c_tr": c_tr,
+            "l_tr": l_tr,
+            "c_te": c_te,
+            "l_te": l_te,
+            "class_names": class_names,
+        },
+        cache_path,
+    )
+    vol.commit()
+    print(f"Persisted UHaT tensor cache to {cache_path}: train={tuple(c_tr.shape)}, test={tuple(c_te.shape)}.", flush=True)
 
 
 @app.function(image=image, volumes={"/vol": vol}, timeout=1800)
 def run_task0_remote():
     setup_vol_env()
+    tmp_zip = "/tmp/uhat_data.zip"
+    tmp_dir = "/root/project/starter/data/uhat"
+    os.makedirs(tmp_dir, exist_ok=True)
+    _download_uhat_zip(tmp_zip)
+    with zipfile.ZipFile(tmp_zip, "r") as zf:
+        zf.extractall(tmp_dir)
+    os.remove(tmp_zip)
+
     res = subprocess.run(
         ["python", "check_starter.py"],
         cwd="/root/project/starter",
@@ -151,7 +181,7 @@ def run_task0_remote():
 
 @app.function(
     image=image,
-    gpu="T4",
+    gpu="A10G",
     volumes={"/vol": vol},
     secrets=_get_hf_secret(),
     timeout=3600,
@@ -227,6 +257,76 @@ def run_part_a_remote():
     }
 
 
+@app.function(
+    image=image,
+    gpu="A10G",
+    volumes={"/vol": vol},
+    secrets=_get_hf_secret(),
+    timeout=3600,
+)
+def run_part_b_remote():
+    import sys
+    sys.path.insert(0, "/root/project")
+    setup_vol_env()
+    ensure_uhat_tensor_cache()
+
+    from part_b_vae.train import train_vae
+    from part_b_vae.evaluate import evaluate_part_b
+
+    ckpt_dir = "/vol/checkpoints/part_b_vae"
+    out_dir = "/tmp/part_b_results"
+    os.makedirs(out_dir, exist_ok=True)
+
+    vae_ckpt = f"{ckpt_dir}/vae_uhat.pt"
+    app_samples = f"{ckpt_dir}/app_uhat_samples.pt"
+
+    loss_plot = f"{out_dir}/vae_loss_terms.png"
+    recon_plot = f"{out_dir}/vae_reconstructions.png"
+    samples_plot = f"{out_dir}/vae_prior_samples.png"
+    interp_plot = f"{out_dir}/vae_interpolation.png"
+    history_csv = f"{out_dir}/vae_train_history.csv"
+    summary_json = f"{out_dir}/part_b_summary.json"
+    correctness_txt = f"{out_dir}/part_b_correctness.txt"
+
+    train_vae(
+        uhat_root="/tmp/uhat_extracted",
+        ckpt_path=vae_ckpt,
+        loss_plot_path=loss_plot,
+        history_csv_path=history_csv,
+        epochs=30,
+        batch_size=128,
+        lr=1e-3,
+        latent_dim=16,
+        seed=42,
+    )
+
+    summary = evaluate_part_b(
+        uhat_root="/tmp/uhat_extracted",
+        ckpt_path=vae_ckpt,
+        recon_plot_path=recon_plot,
+        samples_plot_path=samples_plot,
+        interp_plot_path=interp_plot,
+        summary_json_path=summary_json,
+        correctness_txt_path=correctness_txt,
+        app_samples_path=app_samples,
+        batch_size=128,
+        seed=42,
+    )
+
+    vol.commit()
+    upload_dir_to_hf(ckpt_dir, "part_b_vae")
+
+    return {
+        "loss_plot": Path(loss_plot).read_bytes(),
+        "recon_plot": Path(recon_plot).read_bytes(),
+        "samples_plot": Path(samples_plot).read_bytes(),
+        "interp_plot": Path(interp_plot).read_bytes(),
+        "history_csv": Path(history_csv).read_text(encoding="utf-8"),
+        "summary_json": Path(summary_json).read_text(encoding="utf-8"),
+        "correctness_txt": Path(correctness_txt).read_text(encoding="utf-8"),
+    }
+
+
 @app.local_entrypoint()
 def task0_starter():
     print("Running Task 0 (starter/check_starter.py) on Modal...")
@@ -241,7 +341,7 @@ def task0_starter():
 
 @app.local_entrypoint()
 def part_a():
-    print("Running Part A (MAE Pretraining + Few-Label Classifier + Evaluation) on Modal T4 GPU...")
+    print("Running Part A (MAE Pretraining + Few-Label Classifier + Evaluation) on Modal A10G GPU...")
     out = run_part_a_remote.remote()
 
     os.makedirs("results/figures", exist_ok=True)
@@ -259,4 +359,26 @@ def part_a():
     print(out["summary_json"])
     print("=== Correctness Check ===")
     print(out["correctness_txt"])
-    print("All Part A checkpoints persisted on Modal Volume & Hugging Face Hub; figures/tables saved locally.")
+
+
+@app.local_entrypoint()
+def part_b():
+    print("Running Part B (ConvVAE Training + Evaluation on UHaT) on Modal A10G GPU...")
+    out = run_part_b_remote.remote()
+
+    os.makedirs("results/figures", exist_ok=True)
+    os.makedirs("results/tables", exist_ok=True)
+
+    Path("results/figures/vae_loss_terms.png").write_bytes(out["loss_plot"])
+    Path("results/figures/vae_reconstructions.png").write_bytes(out["recon_plot"])
+    Path("results/figures/vae_prior_samples.png").write_bytes(out["samples_plot"])
+    Path("results/figures/vae_interpolation.png").write_bytes(out["interp_plot"])
+    Path("results/tables/vae_train_history.csv").write_text(out["history_csv"], encoding="utf-8")
+    Path("results/tables/part_b_summary.json").write_text(out["summary_json"], encoding="utf-8")
+    Path("results/tables/part_b_correctness.txt").write_text(out["correctness_txt"], encoding="utf-8")
+
+    print("\n=== Part B Summary ===")
+    print(out["summary_json"])
+    print("=== Correctness Check ===")
+    print(out["correctness_txt"])
+    print("All Part B checkpoints persisted on Modal Volume & Hugging Face Hub; figures/tables saved locally.")

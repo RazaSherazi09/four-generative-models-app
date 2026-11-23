@@ -1,0 +1,23 @@
+{
+  "dataset": {
+    "num_classes": 40,
+    "train_images": 28328,
+    "test_images": 4747
+  },
+  "training": {
+    "total_parameters": 220385,
+    "final_train_neg_elbo": 130.88418012014117,
+    "train_time_sec": 19.308898669999998,
+    "gpu_name": "NVIDIA A10"
+  },
+  "evaluation": {
+    "test_neg_elbo_nats": 131.1042,
+    "test_recon_nats": 106.4449,
+    "test_kl_nats": 24.6593,
+    "interpolation_pair": [
+      "alif",
+      "seen"
+    ],
+    "correctness_check": "[VAE Correctness Check PASSED] Batch=32 | Min batch KL=16.788277 nats (>= 0 verified) | KL at (mu=0, log_sigma^2=0)=0.00e+00 nats (exact 0 verified)."
+  }
+}
