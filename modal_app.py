@@ -48,7 +48,7 @@ def _get_hf_secret():
 
 
 def upload_dir_to_hf(local_dir: str, path_in_repo: str):
-    """Push trained checkpoints from Modal container directly to Hugging Face Hub."""
+    """Push trained checkpoints/indices from Modal container directly to Hugging Face Hub."""
     token = os.environ.get("HF_TOKEN")
     if not token:
         print("Warning: HF_TOKEN not found in container; skipping Hugging Face Hub upload.", flush=True)
@@ -402,6 +402,65 @@ def run_part_c_remote():
     }
 
 
+@app.function(
+    image=image,
+    gpu="A10G",
+    volumes={"/vol": vol},
+    secrets=_get_hf_secret(),
+    timeout=3600,
+)
+def run_part_d_remote(existing_human_eval_csv: str = ""):
+    import sys
+    sys.path.insert(0, "/root/project")
+    setup_vol_env()
+
+    from part_d_rag.evaluate import evaluate_part_d
+
+    index_dir = "/vol/indices/part_d_rag"
+    out_dir = "/tmp/part_d_results"
+    os.makedirs(out_dir, exist_ok=True)
+
+    recall_plot = f"{out_dir}/rag_recall_at_k.png"
+    retrieval_csv = f"{out_dir}/rag_retrieval_curve.csv"
+    rag_answers_jsonl = f"{out_dir}/rag_answers.jsonl"
+    human_eval_csv = f"{out_dir}/human_eval.csv"
+    human_eval_md = f"{out_dir}/rag_human_eval_20_prompts.md"
+    samples_md = f"{out_dir}/samples.md"
+    summary_json = f"{out_dir}/part_d_summary.json"
+    correctness_txt = f"{out_dir}/part_d_correctness.txt"
+
+    if existing_human_eval_csv.strip():
+        Path(human_eval_csv).write_text(existing_human_eval_csv, encoding="utf-8")
+
+    evaluate_part_d(
+        index_dir=index_dir,
+        recall_plot_path=recall_plot,
+        retrieval_csv_path=retrieval_csv,
+        rag_answers_jsonl_path=rag_answers_jsonl,
+        human_eval_csv_path=human_eval_csv,
+        human_eval_md_path=human_eval_md,
+        samples_md_path=samples_md,
+        summary_json_path=summary_json,
+        correctness_txt_path=correctness_txt,
+        num_gen_questions=100,
+        seed=42,
+    )
+
+    vol.commit()
+    upload_dir_to_hf(index_dir, "part_d_rag")
+
+    return {
+        "recall_plot": Path(recall_plot).read_bytes(),
+        "retrieval_csv": Path(retrieval_csv).read_text(encoding="utf-8"),
+        "rag_answers_jsonl": Path(rag_answers_jsonl).read_text(encoding="utf-8"),
+        "human_eval_csv": Path(human_eval_csv).read_text(encoding="utf-8"),
+        "human_eval_md": Path(human_eval_md).read_text(encoding="utf-8"),
+        "samples_md": Path(samples_md).read_text(encoding="utf-8"),
+        "summary_json": Path(summary_json).read_text(encoding="utf-8"),
+        "correctness_txt": Path(correctness_txt).read_text(encoding="utf-8"),
+    }
+
+
 @app.local_entrypoint()
 def task0_starter():
     print("Running Task 0 (starter/check_starter.py) on Modal...")
@@ -481,4 +540,31 @@ def part_c():
     print(out["summary_json"])
     print("=== Correctness Check ===")
     print(out["correctness_txt"])
-    print("All Part C checkpoints persisted on Modal Volume & Hugging Face Hub; figures/tables saved locally.")
+
+
+@app.local_entrypoint()
+def part_d():
+    print("Running Part D (BioASQ Dense Retrieval + Qwen2.5-1.5B-Instruct RAG Evaluation) on Modal A10G GPU...")
+    existing_csv = ""
+    if Path("results/human_eval.csv").exists():
+        existing_csv = Path("results/human_eval.csv").read_text(encoding="utf-8")
+
+    out = run_part_d_remote.remote(existing_human_eval_csv=existing_csv)
+
+    os.makedirs("results/figures", exist_ok=True)
+    os.makedirs("results/tables", exist_ok=True)
+
+    Path("results/figures/rag_recall_at_k.png").write_bytes(out["recall_plot"])
+    Path("results/tables/rag_retrieval_curve.csv").write_text(out["retrieval_csv"], encoding="utf-8")
+    Path("results/rag_answers.jsonl").write_text(out["rag_answers_jsonl"], encoding="utf-8")
+    Path("results/human_eval.csv").write_text(out["human_eval_csv"], encoding="utf-8")
+    Path("results/tables/rag_human_eval_20_prompts.md").write_text(out["human_eval_md"], encoding="utf-8")
+    Path("results/samples.md").write_text(out["samples_md"], encoding="utf-8")
+    Path("results/tables/part_d_summary.json").write_text(out["summary_json"], encoding="utf-8")
+    Path("results/tables/part_d_correctness.txt").write_text(out["correctness_txt"], encoding="utf-8")
+
+    print("\n=== Part D Summary ===")
+    print(out["summary_json"])
+    print("=== Correctness Check ===")
+    print(out["correctness_txt"])
+    print("All Part D dense embeddings persisted on Modal Volume & Hugging Face Hub; evaluation artifacts saved locally.")

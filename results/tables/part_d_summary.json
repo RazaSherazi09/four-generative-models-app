@@ -1,0 +1,138 @@
+{
+  "dataset": {
+    "bioasq_abstracts": 40181,
+    "bioasq_chunks": 79332,
+    "test_questions": 707,
+    "mean_relevant_abstracts_per_question": 8.6634
+  },
+  "retrieval": {
+    "Hit@1": 0.6223,
+    "Hit@5": 0.8161,
+    "Hit@10": 0.8614,
+    "Recall@1": 0.6223,
+    "Recall@5": 0.5863,
+    "Recall@10": 0.6024,
+    "MRR@10": 0.7061
+  },
+  "generation_100q": {
+    "rouge_l_f1": 0.2275,
+    "citation_precision": 0.6757,
+    "valid_citations": 75,
+    "total_citations": 111,
+    "idk_rate": 0.16,
+    "idk_count": 16,
+    "retrieval_failures_in_first_100": 14
+  },
+  "evaluation": {
+    "total_time_sec": 257.5,
+    "correctness_check": "[RAG Correctness Check PASSED] Chunks=79332 (max_words=150 <= 150) | Max L2-norm deviation=1.79e-07 (unit norm verified) | Perfect-retriever sanity check: Hit@1=1.00, Recall@10=1.00, MRR@10=1.00.",
+    "failure_examples_for_e6": [
+      {
+        "qid": 4213,
+        "question": "Is capmatinib effective for glioblastoma?",
+        "relevant_ids": [
+          31776899
+        ],
+        "top10_abstract_ids": [
+          18366283,
+          18035958,
+          32557339,
+          22413865,
+          23363814,
+          27296952,
+          23659608,
+          9815790,
+          18779539,
+          17938702
+        ],
+        "generated_answer": "Yes, capmatinib is effective for glioblastoma. According to Passage [3], Capmatinib has been approved by the FDA for the treatment of glioblastoma in patients with a specific genetic mutation. Additionally, it is mentioned that clinical development for the treatment of glioblastoma, liver cancer, malignant melanoma, breast cancer, colorectal cancer, head and neck cancer, and solid tumors is ongoing.",
+        "is_idk": false
+      },
+      {
+        "qid": 4456,
+        "question": "What is F105-P?",
+        "relevant_ids": [
+          15908939
+        ],
+        "top10_abstract_ids": [
+          26058333,
+          24214964,
+          30258093,
+          23943237,
+          29059618,
+          23229308,
+          8647196,
+          19429691,
+          19822515,
+          22982358
+        ],
+        "generated_answer": "I do not know based on the provided passages.",
+        "is_idk": true
+      },
+      {
+        "qid": 3807,
+        "question": "Which main viral protein is targeted by the drug remdesivir?",
+        "relevant_ids": [
+          30275474,
+          29511076
+        ],
+        "top10_abstract_ids": [
+          34497279,
+          33555378,
+          34535038,
+          23102969,
+          25595799,
+          22535622,
+          18631147,
+          28769016,
+          21946389,
+          24084488
+        ],
+        "generated_answer": "Remdesivir targets MRP4, OATP1B1/1B3, MATE1, and OCT1. [1]",
+        "is_idk": false
+      },
+      {
+        "qid": 4212,
+        "question": "Describe Full Spectrum of Intolerance to Loss-of-function (FUSIL)",
+        "relevant_ids": [
+          32005800
+        ],
+        "top10_abstract_ids": [
+          19822515,
+          30095537,
+          23567359,
+          15947963,
+          9005271,
+          30503518,
+          23520356,
+          19728071,
+          30441460,
+          1873324
+        ],
+        "generated_answer": "Based on the provided passages, we cannot definitively describe the full spectrum of loss-of-function syndrome (FUSIL). The passages discuss FUS, which is typically a unilateral, chronic, low-grade inflammation of the anterior segment manifesting in young adulthood. They mention that while the exact cause of FUS remains unknown, it could involve multiple causes leading to similar clinical entities. However, the specific details about the full spectrum of FUSIL are not covered in these passages. Therefore, my response is:\n\nI do not know based on the provided passages.",
+        "is_idk": true
+      },
+      {
+        "qid": 3829,
+        "question": "Is there any role of genotoxic pks + E. coli in cancer?",
+        "relevant_ids": [
+          32106218
+        ],
+        "top10_abstract_ids": [
+          11075932,
+          24296136,
+          9196252,
+          29432909,
+          23245695,
+          18089715,
+          23599436,
+          11525920,
+          27042826,
+          34893673
+        ],
+        "generated_answer": "Based on the provided passages, I do not know. While passage [1] discusses the suppression of toxic effects in E. coli by certain proteins like HU, it does not mention anything about genotoxic stress or its relationship to cancer. Similarly, passage [2] talks about genotoxicity in food products but does not relate it to E. coli or cancer. Passage [3] mentions H. pylori and its association with gastric cancer but does not discuss E. coli or genotoxicity directly. Lastly, passage [5] describes how cisplatin affects E. coli but does not connect it to genotoxic stress or cancer. Therefore, there is insufficient information in the given passages to definitively say if there is any role of genotoxic pks + E. coli in cancer.",
+        "is_idk": true
+      }
+    ]
+  }
+}

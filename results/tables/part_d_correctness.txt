@@ -1,0 +1,1 @@
+[RAG Correctness Check PASSED] Chunks=79332 (max_words=150 <= 150) | Max L2-norm deviation=1.79e-07 (unit norm verified) | Perfect-retriever sanity check: Hit@1=1.00, Recall@10=1.00, MRR@10=1.00.
